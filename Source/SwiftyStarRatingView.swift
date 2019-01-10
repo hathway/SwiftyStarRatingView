@@ -12,7 +12,7 @@ public typealias SSRVShouldBeginGesRecBlock = (_ gesture:UIGestureRecognizer) ->
 
 @IBDesignable
 public class SwiftyStarRatingView: UIControl {
-    
+
     @IBInspectable public var maximumValue: CGFloat {
         set{
             if _maximumValue != newValue {
@@ -82,13 +82,21 @@ public class SwiftyStarRatingView: UIControl {
             setNeedsDisplay()
         }
     }
-    
+    @IBInspectable public var activeStarImage: UIImage? {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    @IBInspectable public var titleFont: UIFont = UIFont.systemFont(ofSize: 11.0)
+    @IBInspectable public var titleColor: UIColor = .blue
+    @IBInspectable public var filledTitleColor: UIColor = .white
+
     public var shouldBecomeFirstResponder: Bool = false
     public var shouldBeginGesRecBlock:SSRVShouldBeginGesRecBlock!
-    
+
     fileprivate var _minimumValue: CGFloat!
     fileprivate var _maximumValue: CGFloat!
-    
+
     fileprivate var shouldUseImages: Bool{
         get{
             return (self.emptyStarImage != nil && self.filledStarImage != nil)
@@ -102,7 +110,7 @@ public class SwiftyStarRatingView: UIControl {
             setNeedsDisplay()
         }
     }
-    
+
     override public var isEnabled: Bool {
         willSet{
             updateAppearance(enabled: newValue)
@@ -128,33 +136,34 @@ public class SwiftyStarRatingView: UIControl {
             return super.tintColor
         }
     }
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.customInit()
     }
-    
+
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         self.customInit()
     }
-    
+
     override public func draw(_ rect: CGRect) {
-        
+
         let context = UIGraphicsGetCurrentContext()
         context?.setFillColor((self.backgroundColor?.cgColor ?? UIColor.white.cgColor)!)
         context?.fill(rect)
-        
-        let availableWidth = rect.width - 2 - (spacing * (_maximumValue - 1))
+
+        let padding: CGFloat = 20.0
+        let availableWidth = rect.width - 2 - (spacing * (_maximumValue - 1)) - padding
         let cellWidth = availableWidth / _maximumValue
         let starSide = (cellWidth <= rect.height) ? cellWidth : rect.height
-        
+
         for idx in 0..<Int(_maximumValue) {
-            
-            let center = CGPoint(x: (cellWidth + spacing) * CGFloat(idx) + cellWidth / 2 + 1 , y: rect.size.height / 2)
+
+            let center = CGPoint(x: (cellWidth + spacing) * CGFloat(idx) + cellWidth / 2 + 1 + padding / 2.0, y: rect.size.height / 2)
             let frame = CGRect(x: center.x - starSide / 2, y: center.y - starSide / 2, width: starSide, height: starSide)
             let highlighted = (Float(idx+1) <= ceilf(Float(_value)))
-            
+
             if allowsHalfStars && highlighted && (CGFloat(idx+1) > _value) {
                 if accurateHalfStars {
                     drawAccurateStar(frame: frame, tintColor: tintColor, progress: _value-CGFloat(idx))
@@ -162,14 +171,33 @@ public class SwiftyStarRatingView: UIControl {
                     drawHalfStar(frame: frame, tintColor: tintColor)
                 }
             }else {
-                drawStar(frame: frame, tintColor: tintColor, highlighted: highlighted)
+                drawStar(frame: frame, tintColor: tintColor, highlighted: highlighted, value: idx + 1)
             }
+            drawText(frame: frame, highlighted: highlighted, value: idx + 1)
         }
     }
 }
 
 fileprivate extension SwiftyStarRatingView {
-    
+    func drawText(frame: CGRect, highlighted: Bool, value: Int) {
+        let color: UIColor = highlighted ? filledTitleColor : titleColor
+        let font: UIFont = value == Int(_value) ? titleFont.withSize(15.0) : titleFont.withSize(11.0)
+        let attrs = [
+            NSForegroundColorAttributeName: color,
+            NSFontAttributeName: font
+        ]
+
+        let str = "\(value)" as NSString
+        let bounds = str.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attrs, context: nil)
+        var point = CGPoint(x: frame.midX, y: frame.midY)
+        point.x -= bounds.width / 2.0
+        point.y -= bounds.height / 2.0
+        str.draw(at: point, withAttributes: attrs)
+    }
+}
+
+fileprivate extension SwiftyStarRatingView {
+
     func customInit() {
         _value = 0
         spacing = 0.0
@@ -179,15 +207,15 @@ fileprivate extension SwiftyStarRatingView {
         self.isExclusiveTouch = true
         self.updateAppearance(enabled: self.isEnabled)
     }
-    
-    func drawStar(frame:CGRect, tintColor:UIColor, highlighted:Bool) {
+
+    func drawStar(frame:CGRect, tintColor:UIColor, highlighted:Bool, value: Int) {
         if self.shouldUseImages {
-            drawStartImage(frame: frame, tintColor: tintColor, highlighted: highlighted)
+            drawStartImage(frame: frame, tintColor: tintColor, highlighted: highlighted, value: value)
         }else {
             drawStarShape(frame: frame, tintColor: tintColor, highlighted: highlighted)
         }
     }
-    
+
     func drawHalfStar(frame:CGRect, tintColor:UIColor) {
         if self.shouldUseImages {
             drawHalfStarImage(frame: frame, tintColor: tintColor)
@@ -195,7 +223,7 @@ fileprivate extension SwiftyStarRatingView {
             drawHalfStarShape(frame: frame, tintColor: tintColor)
         }
     }
-    
+
     func drawAccurateStar(frame:CGRect, tintColor:UIColor, progress:CGFloat) {
         if self.shouldUseImages {
             drawAccurateHalfStarImage(frame: frame, tintColor: tintColor, progress: progress)
@@ -203,7 +231,7 @@ fileprivate extension SwiftyStarRatingView {
             drawAccurateHalfStarShape(frame: frame, tintColor: tintColor, progress: progress)
         }
     }
-    
+
     func updateAppearance(enabled:Bool) {
         self.alpha = enabled ? 1.0 : 1.5
     }
@@ -212,15 +240,21 @@ fileprivate extension SwiftyStarRatingView {
 
 fileprivate extension SwiftyStarRatingView {
     //Image Drawing
-    func drawStartImage(frame:CGRect, tintColor:UIColor, highlighted:Bool) {
+    func drawStartImage(frame:CGRect, tintColor:UIColor, highlighted:Bool, value: Int) {
         let image = highlighted ? self.filledStarImage : self.emptyStarImage
-        draw(image: image!, frame: frame, tintColor: tintColor)
+        let isActive = Int(_value) == value
+        if isActive && activeStarImage != nil {
+            let activeFrame = frame.insetBy(dx: -frame.width * 0.3, dy: -frame.height * 0.3)
+            draw(image: activeStarImage!, frame: activeFrame, tintColor: tintColor)
+        } else {
+            draw(image: image!, frame: frame, tintColor: tintColor)
+        }
     }
-    
+
     func drawHalfStarImage(frame:CGRect, tintColor:UIColor) {
         drawAccurateHalfStarImage(frame: frame, tintColor: tintColor, progress: 0.5)
     }
-    
+
     func drawAccurateHalfStarImage(frame:CGRect, tintColor:UIColor, progress:CGFloat) {
         var image = self.halfStarImage
         var aFrame = frame
@@ -233,7 +267,7 @@ fileprivate extension SwiftyStarRatingView {
         }
         self.draw(image: image!, frame: aFrame, tintColor: tintColor)
     }
-    
+
     func draw(image:UIImage, frame:CGRect, tintColor:UIColor) {
         if image.renderingMode == .alwaysTemplate {
             tintColor.setFill()
@@ -247,13 +281,13 @@ fileprivate extension SwiftyStarRatingView {
     func drawStarShape(frame:CGRect, tintColor:UIColor, highlighted:Bool) {
         drawAccurateHalfStarShape(frame: frame, tintColor: tintColor, progress: highlighted ? 1.0 : 0.0)
     }
-    
+
     func drawHalfStarShape(frame:CGRect, tintColor:UIColor) {
         drawAccurateHalfStarShape(frame: frame, tintColor: tintColor, progress: 0.5)
     }
-    
+
     func drawAccurateHalfStarShape(frame:CGRect, tintColor:UIColor, progress:CGFloat) {
-        
+
         let starShapePath = UIBezierPath()
         starShapePath.move(to: CGPoint(x: frame.minX + 0.62723 * frame.width, y: frame.minY + 0.37309 * frame.height))
         starShapePath.addLine(to: CGPoint(x: frame.minX + 0.50000 * frame.width, y: frame.minY + 0.02500 * frame.height))
@@ -268,20 +302,20 @@ fileprivate extension SwiftyStarRatingView {
         starShapePath.addLine(to: CGPoint(x: frame.minX + 0.62723 * frame.width, y: frame.minY + 0.37309 * frame.height))
         starShapePath.close()
         starShapePath.miterLimit = 4
-        
+
         let frameWidth = frame.size.width
         let rightRectOfStar = CGRect(x: frame.origin.x + progress * frameWidth, y: frame.origin.y, width: frameWidth - progress * frameWidth, height: frame.size.height)
-      
+
         let clipPath = UIBezierPath(rect: CGRect.infinite)
         clipPath.append(UIBezierPath(rect: rightRectOfStar))
         clipPath.usesEvenOddFillRule = true
-       
+
         UIGraphicsGetCurrentContext()!.saveGState()
         clipPath.addClip()
         tintColor.setFill()
         starShapePath.fill()
         UIGraphicsGetCurrentContext()!.restoreGState()
-        
+
         tintColor.setStroke()
         starShapePath.lineWidth = 1
         starShapePath.stroke()
@@ -302,7 +336,7 @@ extension SwiftyStarRatingView {
             return false
         }
     }
- 
+
     override public func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         if self.isEnabled {
             super.continueTracking(touch, with: event)
@@ -312,7 +346,7 @@ extension SwiftyStarRatingView {
             return false
         }
     }
-    
+
     override public func endTracking(_ touch: UITouch?, with event: UIEvent?) {
         super.endTracking(touch, with: event)
         if shouldBecomeFirstResponder && self.isFirstResponder {
@@ -330,7 +364,7 @@ extension SwiftyStarRatingView {
             self.resignFirstResponder()
         }
     }
-    
+
     override public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if (gestureRecognizer.view?.isEqual(self))! {
             return !self.isUserInteractionEnabled
@@ -338,14 +372,14 @@ extension SwiftyStarRatingView {
             return (self.shouldBeginGesRecBlock != nil) ? self.shouldBeginGesRecBlock(gestureRecognizer) : false
         }
     }
-    
+
     fileprivate func handle(touch:UITouch) {
         let cellWidth = self.bounds.width/_maximumValue
         let location = touch.location(in: self)
         var aValue = location.x/cellWidth
         if allowsHalfStars {
             if accurateHalfStars {
-                
+
             }else {
                 if aValue+0.5 < ceil(aValue) {
                     aValue = floor(aValue)+0.5
@@ -366,16 +400,16 @@ extension SwiftyStarRatingView {
 }
 
 extension SwiftyStarRatingView {
-    
+
     override public func accessibilityActivate() -> Bool {
         return true
     }
-    
+
     override public func accessibilityIncrement() {
         let aValue = _value + (allowsHalfStars ? 0.5 : 1.0)
         self.value = aValue
     }
-    
+
     override public func accessibilityDecrement() {
         let aValue = _value - (allowsHalfStars ? 0.5 : 1.0)
         self.value = aValue

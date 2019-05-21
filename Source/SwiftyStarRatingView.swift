@@ -183,16 +183,16 @@ fileprivate extension SwiftyStarRatingView {
         let color: UIColor = highlighted ? filledTitleColor : titleColor
         let font: UIFont = value == Int(_value) ? titleFont.withSize(15.0) : titleFont.withSize(11.0)
         let attrs = [
-            NSForegroundColorAttributeName: color,
-            NSFontAttributeName: font
+            convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor): color,
+            convertFromNSAttributedStringKey(NSAttributedString.Key.font): font
         ]
 
         let str = "\(value)" as NSString
-        let bounds = str.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attrs, context: nil)
+        let bounds = str.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: convertToOptionalNSAttributedStringKeyDictionary(attrs), context: nil)
         var point = CGPoint(x: frame.midX, y: frame.midY)
         point.x -= bounds.width / 2.0
         point.y -= bounds.height / 2.0
-        str.draw(at: point, withAttributes: attrs)
+        str.draw(at: point, withAttributes: convertToOptionalNSAttributedStringKeyDictionary(attrs))
     }
 }
 
@@ -416,3 +416,14 @@ extension SwiftyStarRatingView {
     }
 }
 
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+	return input.rawValue
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertToOptionalNSAttributedStringKeyDictionary(_ input: [String: Any]?) -> [NSAttributedString.Key: Any]? {
+	guard let input = input else { return nil }
+	return Dictionary(uniqueKeysWithValues: input.map { key, value in (NSAttributedString.Key(rawValue: key), value)})
+}

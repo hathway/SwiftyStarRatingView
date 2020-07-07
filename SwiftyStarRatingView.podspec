@@ -9,5 +9,5 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/Jerrrr/SwiftyStarRatingView.git", :tag => s.version }
   s.source_files = "Source/SwiftyStarRatingView.swift"
   s.requires_arc = true
-  s.swift_versions = ['5.2.3']
+  s.swift_versions = ['5.0']
 end
